@@ -1,0 +1,99 @@
+Лабораторная работа №2
+Задача 4:
+Hаписать пpогpамму пословного (подстрочного) пеpевода
+пpедложения, представленного в виде списка слов, 
+с английского на фpанцузский (или любой другой) язык.
+Был выбран немецкий язык.
+
+% Артикли
+dict(the, der).
+dict(the, die).
+dict(the, das).
+
+% Существительные
+dict(cat, katze).
+dict(dog, hund).
+dict(house, haus).
+dict(car, auto).
+
+% Глаголы
+dict(is, ist).
+dict(are, sind).
+dict(runs, läuft).
+dict(sleeps, schläft).
+
+% Прилагательные
+dict(black, schwarze).
+dict(black, schwarzer).
+dict(black, schwarzes).
+dict(white, weiße).
+dict(fast, schnelles).
+
+% Местоимения
+dict(i, ich).
+dict(you, du).
+dict(he, er).
+dict(she, sie).
+dict(it, es).
+
+translate_word(Eng, Ger) :-
+    dict(Eng, Ger).
+
+translate_list([], []).
+
+translate_list([EngHead|EngTail], [GerHead|GerTail]) :-
+    translate_word(EngHead, GerHead),
+    translate_list(EngTail, GerTail).
+
+translate_sentence(Eng, Ger) :-
+    translate_list(Eng, Ger).
+Запрос 1:
+translate_sentence([the, cat, sleeps], Ger).
+Результат:
+Ger = [der, katze, schläft]
+Ger = [die, katze, schläft]
+Ger = [das, katze, schläft]
+
+Существуют такие немецкие слова Ger, 
+что каждое из них является переводом соответствующего 
+английского слова из списка [the, cat, sleeps]. 
+При этом для слова the возможны три варианта перевода 
+(der, die, das), но der не подходит по роду к katze 
+(Prolog этого не знает, он просто перебирает все варианты). 
+Система выдаёт два возможных перевода, так как die и das - допустимые
+артикли для katze в словаре.
+
+Prolog сначала пытается перевести the и находит 
+первое подходящее слово der. Затем переводит cat в katze, 
+sleeps в schläft. Получает список [der, katze, schläft]. 
+При запросе новых решений 
+Prolog возвращается к точке выбора для the и 
+находит следующее значение die, затем das. 
+Для das он выдаёт третье решение. 
+После этого попыток больше нет.
+
+Запрос 2:
+translate_sentence([a, black, cat, sleeps], Ger).
+Результат:
+false
+
+В словаре нет перевода для слова a, 
+поэтому утверждение "существует перевод для этого предложения" ложно.
+
+Prolog пытается найти факт dict(a, X), 
+не находит, и цель translate_word(a, _) терпит неудачу, 
+из-за чего весь запрос завершается с false.
+
+Запрос 3:
+findall(Ger, translate_sentence([the, dog, runs], Ger), All).
+Результат:
+All = [[der, hund, läuft], [die, hund, läuft], [das, hund, läuft]]
+
+Множество всех списков Ger, 
+являющихся переводом [the, dog, runs], 
+состоит из трёх элементов, различающихся артиклем.
+
+findall собирает все возможные решения 
+цели translate_sentence([the, dog, runs], Ger) в список. 
+Prolog перебирает все варианты перевода the, 
+каждый раз заново переводит остальные слова.
