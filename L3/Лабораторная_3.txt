@@ -1,0 +1,358 @@
+% Лабораторная работа 3: База данных отдела поставок (Вариант 4)
+% Отношение "один-ко-многим": один поставщик - много поставок
+
+:- dynamic поставщик/7.
+:- dynamic поставка/9.
+
+clear :- write('\n\e[H\e[2J\n').
+
+% Чтение целого числа с проверкой
+read_int(X) :- 
+    read_line_to_string(user_input, S),
+    string_to_atom(S, A),
+    atom_number(A, X), !.
+read_int(_) :- 
+    write('Ошибка ввода! Введите целое число: '), 
+    read_int(X).
+
+% Чтение строки
+read_string(S) :- 
+    read_line_to_string(user_input, S).
+
+% Чтение дробного числа
+read_float(F) :- 
+    read_line_to_string(user_input, S),
+    string_to_atom(S, A),
+    atom_number(A, F), !.
+read_float(_) :- 
+    write('Ошибка ввода! Введите число: '), 
+    read_float(F).
+
+% Добавление записей
+
+% Добавление нового поставщика
+add_supplier :- 
+    write('=== Добавление нового поставщика ==='), nl,
+    write('Введите ID поставщика (целое число): '), read_int(Id),
+    (поставщик(Id, _, _, _, _, _, _) ->
+        write('Поставщик с таким ID уже существует!'), nl, !
+    ;
+        write('Название компании: '), read_string(Company),
+        write('ФИО контактного лица: '), read_string(Contact),
+        write('Расчетный счет: '), read_string(Account),
+        write('Телефон: '), read_string(Phone),
+        write('Факс: '), read_string(Fax),
+        write('Поставляемое оборудование/материалы: '), read_string(Products),
+        assertz(поставщик(Id, Company, Contact, Account, Phone, Fax, Products)),
+        write('Поставщик успешно добавлен!'), nl
+    ).
+
+% Добавление новой поставки
+add_delivery :- 
+    write('=== Добавление новой поставки ==='), nl,
+    write('Введите ID поставки (целое число): '), read_int(DeliveryId),
+    (поставка(DeliveryId, _, _, _, _, _, _, _, _) ->
+        write('Поставка с таким ID уже существует!'), nl, !
+    ;
+        write('ID поставщика: '), read_int(SupplierId),
+        (поставщик(SupplierId, _, _, _, _, _, _) ->
+            write('Тип сырья: '), read_string(Type),
+            write('Марка: '), read_string(Brand),
+            write('Дата поставки по договору (ГГГГ-ММ-ДД): '), read_string(ContractDate),
+            write('Реальная дата поставки (ГГГГ-ММ-ДД): '), read_string(RealDate),
+            write('Метод доставки: '), read_string(DeliveryMethod),
+            write('Стоимость доставки: '), read_float(Cost),
+            write('Объем поставки: '), read_float(Volume),
+            assertz(поставка(DeliveryId, SupplierId, Type, Brand, ContractDate, RealDate, DeliveryMethod, Cost, Volume)),
+            write('Поставка успешно добавлена!'), nl
+        ;
+            write('Поставщик с ID '), write(SupplierId), write(' не найден!'), nl
+        )
+    ).
+
+% Просмотр
+
+% Просмотр всех поставщиков
+view_suppliers :- 
+    write('=== Список всех поставщиков ==='), nl,
+    (поставщик(Id, Company, Contact, Account, Phone, Fax, Products),
+        write('ID: '), write(Id), nl,
+        write('  Компания: '), write(Company), nl,
+        write('  Контактное лицо: '), write(Contact), nl,
+        write('  Расчетный счет: '), write(Account), nl,
+        write('  Телефон: '), write(Phone), nl,
+        write('  Факс: '), write(Fax), nl,
+        write('  Поставляемая продукция: '), write(Products), nl,
+        write('------------------------'), nl,
+        fail
+    ;
+        true
+    ),
+    (\+ поставщик(_, _, _, _, _, _, _) ->
+        write('Список поставщиков пуст.'), nl
+    ;
+        true
+    ).
+
+% Просмотр всех поставок
+view_deliveries :- 
+    write('=== Список всех поставок ==='), nl,
+    (поставка(Id, SupId, Type, Brand, CDate, RDate, Method, Cost, Vol),
+        write('ID поставки: '), write(Id), nl,
+        write('  ID поставщика: '), write(SupId), nl,
+        write('  Тип сырья: '), write(Type), nl,
+        write('  Марка: '), write(Brand), nl,
+        write('  Дата по договору: '), write(CDate), nl,
+        write('  Реальная дата: '), write(RDate), nl,
+        write('  Метод доставки: '), write(Method), nl,
+        write('  Стоимость доставки: '), write(Cost), nl,
+        write('  Объем поставки: '), write(Vol), nl,
+        write('------------------------'), nl,
+        fail
+    ;
+        true
+    ),
+    (\+ поставка(_, _, _, _, _, _, _, _, _) ->
+        write('Список поставок пуст.'), nl
+    ;
+        true
+    ).
+
+% Запрос
+% Показывает всех поставщиков и все их поставки
+show_supplier_deliveries :- 
+    write('=== Поставщики и их поставки (связь 1:N) ==='), nl,
+    (поставщик(Id, Company, Contact, _, _, _, _),
+        write('Поставщик: '), write(Company), 
+        write(' (ID: '), write(Id), write(')'), nl,
+        write('  Контактное лицо: '), write(Contact), nl,
+        write('  Поставки:'), nl,
+        (поставка(_, Id, Type, Brand, _CDate, RDate, Method, Cost, Vol),
+            write('    - '), write(Type), write(' '), write(Brand),
+            write(' | Объем: '), write(Vol),
+            write(' | Дата: '), write(RDate),
+            write(' | Доставка: '), write(Method),
+            write(' | Стоимость: '), write(Cost), nl,
+            fail
+        ;
+            true
+        ),
+        (\+ поставка(_, Id, _, _, _, _, _, _, _) ->
+            write('    (нет поставок)'), nl
+        ;
+            true
+        ),
+        write('------------------------'), nl,
+        fail
+    ;
+        true
+    ).
+
+% Поиск поставок конкретного поставщика
+search_supplier_deliveries :- 
+    write('=== Поиск поставок поставщика ==='), nl,
+    write('Введите ID поставщика: '), read_int(Id),
+    (поставщик(Id, Company, _, _, _, _, _) ->
+        write('Поставщик: '), write(Company), nl,
+        write('Поставки:'), nl,
+        (поставка(DelId, Id, Type, Brand, _CDate, RDate, _Method, _Cost, Vol),
+            write('  ID '), write(DelId), write(': '),
+            write(Type), write(' '), write(Brand),
+            write(' | Объем: '), write(Vol),
+            write(' | Дата: '), write(RDate), nl,
+            fail
+        ;
+            true
+        ),
+        (\+ поставка(_, Id, _, _, _, _, _, _, _) ->
+            write('  (нет поставок)'), nl
+        ;
+            true
+        )
+    ;
+        write('Поставщик с ID '), write(Id), write(' не найден.'), nl
+    ).
+
+% Удаление
+% Удаление поставщика с каскадным удалением всех его поставок
+delete_supplier :- 
+    write('=== Удаление поставщика ==='), nl,
+    write('Введите ID поставщика для удаления: '), read_int(Id),
+    (поставщик(Id, Company, _, _, _, _, _) ->
+        % Сначала удаляем все поставки этого поставщика
+        retractall(поставка(_, Id, _, _, _, _, _, _, _)),
+        % Затем удаляем самого поставщика
+        retract(поставщик(Id, _, _, _, _, _, _)),
+        write('Поставщик "'), write(Company), 
+        write('" и все его поставки успешно удалены!'), nl
+    ;
+        write('Поставщик с ID '), write(Id), write(' не найден.'), nl
+    ).
+
+% Удаление одной поставки
+delete_delivery :- 
+    write('=== Удаление поставки ==='), nl,
+    write('Введите ID поставки для удаления: '), read_int(Id),
+    (поставка(Id, _, _, _, _, _, _, _, _) ->
+        retract(поставка(Id, _, _, _, _, _, _, _, _)),
+        write('Поставка с ID '), write(Id), write(' успешно удалена!'), nl
+    ;
+        write('Поставка с ID '), write(Id), write(' не найдена.'), nl
+    ).
+
+% Изменение
+% Редактирование поставщика
+edit_supplier :- 
+    write('=== Редактирование поставщика ==='), nl,
+    write('Введите ID поставщика: '), read_int(Id),
+    (поставщик(Id, Company, Contact, Account, Phone, Fax, Products) ->
+        retract(поставщик(Id, _, _, _, _, _, _)),
+        write('Новое название компании (Enter - оставить "'), 
+        write(Company), write('"): '), read_string(NewCompany),
+        (NewCompany = "" -> NewCompany = Company ; true),
+        
+        write('Новое ФИО контактного лица (Enter - оставить "'), 
+        write(Contact), write('"): '), read_string(NewContact),
+        (NewContact = "" -> NewContact = Contact ; true),
+        
+        write('Новый расчетный счет (Enter - оставить "'), 
+        write(Account), write('"): '), read_string(NewAccount),
+        (NewAccount = "" -> NewAccount = Account ; true),
+        
+        write('Новый телефон (Enter - оставить "'), 
+        write(Phone), write('"): '), read_string(NewPhone),
+        (NewPhone = "" -> NewPhone = Phone ; true),
+        
+        write('Новый факс (Enter - оставить "'), 
+        write(Fax), write('"): '), read_string(NewFax),
+        (NewFax = "" -> NewFax = Fax ; true),
+        
+        write('Новое описание продукции (Enter - оставить "'), 
+        write(Products), write('"): '), read_string(NewProducts),
+        (NewProducts = "" -> NewProducts = Products ; true),
+        
+        assertz(поставщик(Id, NewCompany, NewContact, NewAccount, NewPhone, NewFax, NewProducts)),
+        write('Данные поставщика обновлены!'), nl
+    ;
+        write('Поставщик с ID '), write(Id), write(' не найден.'), nl
+    ).
+
+
+% Статистика по поставкам
+show_statistics :- 
+    write('=== Статистика по поставкам ==='), nl,
+    % Подсчет количества поставщиков
+    findall(Id, поставщик(Id, _, _, _, _, _, _), Suppliers),
+    length(Suppliers, SupplierCount),
+    write('Всего поставщиков: '), write(SupplierCount), nl,
+    
+    % Подсчет количества поставок
+    findall(Id, поставка(Id, _, _, _, _, _, _, _, _), Deliveries),
+    length(Deliveries, DeliveryCount),
+    write('Всего поставок: '), write(DeliveryCount), nl,
+    
+    % Общая стоимость доставок
+    findall(Cost, поставка(_, _, _, _, _, _, _, Cost, _), Costs),
+    sum_list(Costs, TotalCost),
+    write('Общая стоимость доставок: '), write(TotalCost), nl,
+    
+    % Общий объем поставок
+    findall(Vol, поставка(_, _, _, _, _, _, _, _, Vol), Volumes),
+    sum_list(Volumes, TotalVolume),
+    write('Общий объем поставок: '), write(TotalVolume), nl.
+
+sum_list([], 0).
+sum_list([H|T], Sum) :- sum_list(T, Rest), Sum is H + Rest.
+
+% Тестовые данные
+
+init_test_data :- 
+    write('=== Инициализация тестовых данных ==='), nl,
+    % Очистка существующих данных
+    retractall(поставщик(_, _, _, _, _, _, _)),
+    retractall(поставка(_, _, _, _, _, _, _, _, _)),
+    
+    % Добавление тестовых поставщиков
+    assertz(поставщик(1, 'ООО "МеталлПром"', 'Иванов Иван Иванович', 
+                      '40802810000000000001', '+7(495)123-45-67', 
+                      '+7(495)123-45-68', 'Металлопрокат, трубы')),
+    assertz(поставщик(2, 'ЗАО "ХимСнаб"', 'Петрова Анна Сергеевна', 
+                      '40802810000000000002', '+7(812)234-56-78', 
+                      '+7(812)234-56-79', 'Химические реактивы, растворители')),
+    assertz(поставщик(3, 'ИП Сидоров А.В.', 'Сидоров Алексей Владимирович', 
+                      '40802810000000000003', '+7(383)345-67-89', 
+                      '+7(383)345-67-90', 'Электрооборудование, кабель')),
+    
+    % Добавление тестовых поставок
+    assertz(поставка(101, 1, 'Металлопрокат', 'Сталь листовая 3мм', 
+                     '2024-01-15', '2024-01-14', 'Ж/д транспорт', 15000.00, 5.5)),
+    assertz(поставка(102, 1, 'Трубы', 'Труба стальная 50мм', 
+                     '2024-02-01', '2024-02-03', 'Автотранспорт', 8500.00, 2.8)),
+    assertz(поставка(103, 2, 'Реактивы', 'Кислота серная', 
+                     '2024-01-20', '2024-01-21', 'Спецтранспорт', 12500.00, 1.2)),
+    assertz(поставка(104, 2, 'Растворители', 'Ацетон технический', 
+                     '2024-02-10', '2024-02-09', 'Автотранспорт', 6700.00, 0.8)),
+    assertz(поставка(105, 3, 'Кабель', 'Кабель силовой 5x2.5', 
+                     '2024-03-01', '2024-03-02', 'Автотранспорт', 3200.00, 1.5)),
+    assertz(поставка(106, 3, 'Электрооборудование', 'Автоматический выключатель', 
+                     '2024-03-05', '2024-03-05', 'Курьерская доставка', 1200.00, 0.05)),
+    
+    write('Тестовые данные загружены!'), nl,
+    write('Всего поставщиков: 3, поставок: 6'), nl.
+
+
+show_database :- 
+    write('=== ТЕКУЩЕЕ СОДЕРЖИМОЕ БАЗЫ ДАННЫХ ==='), nl,
+    listing(поставщик/7),
+    listing(поставка/9).
+
+
+% Обработка выбора меню
+menu_do(1) :- add_supplier.
+menu_do(2) :- add_delivery.
+menu_do(3) :- view_suppliers.
+menu_do(4) :- view_deliveries.
+menu_do(5) :- show_supplier_deliveries.
+menu_do(6) :- search_supplier_deliveries.
+menu_do(7) :- delete_supplier.
+menu_do(8) :- delete_delivery.
+menu_do(9) :- edit_supplier.
+menu_do(10) :- show_statistics.
+menu_do(11) :- init_test_data.
+menu_do(12) :- show_database.
+menu_do(0) :- write('Выход из программы. До свидания!'), nl.
+menu_do(_) :- write('Неверный пункт меню!'), nl.
+
+% Показ меню
+show_menu :- 
+    nl,
+    write('========== МЕНЮ ПРОГРАММЫ =========='), nl,
+    write('1.  Добавить поставщика'), nl,
+    write('2.  Добавить поставку'), nl,
+    write('3.  Показать всех поставщиков'), nl,
+    write('4.  Показать все поставки'), nl,
+    write('5.  Показать связь "поставщики-поставки" (1:N)'), nl,
+    write('6.  Найти поставки конкретного поставщика'), nl,
+    write('7.  Удалить поставщика (каскадное удаление)'), nl,
+    write('8.  Удалить поставку'), nl,
+    write('9.  Редактировать поставщика'), nl,
+    write('10. Показать статистику'), nl,
+    write('11. Загрузить тестовые данные'), nl,
+    write('12. Показать содержимое базы данных'), nl,
+    write('0.  Выход'), nl,
+    write('===================================='), nl,
+    write('Выберите пункт меню: ').
+
+% Главная программа
+main :- 
+    write('========================================'), nl,
+    write('   БАЗА ДАННЫХ ОТДЕЛА ПОСТАВОК'), nl,
+    write('   (онлайн-версия)'), nl,
+    write('========================================'), nl,
+    write('Рекомендуется сначала загрузить тестовые'), nl,
+    write('данные (пункт меню 11)'), nl,
+    repeat,
+    show_menu,
+    read_int(Choice),
+    menu_do(Choice),
+    Choice = 0, !.
