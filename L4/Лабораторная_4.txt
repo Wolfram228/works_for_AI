@@ -1,0 +1,44 @@
+%Лабораторная 4. Вариант 4.
+
+% Вариант 1. Полный перебор
+% 1. Предикат генерации всех перестановок
+
+my_permutation([], []).
+my_permutation(List, [H|Perm]) :-
+    select(H, List, Rest), 
+    my_permutation(Rest, Perm).
+
+% 2. Предикат проверки на упорядоченность (неубывание)
+ordered([]).
+ordered([_]).
+ordered([X, Y | T]) :-
+    X =< Y,
+    ordered([Y | T]).
+
+% 3. Основной предикат сортировки методом "Сгенерировать и проверить"
+%    sort_brute_force(ИсходныйСписок, ОтсортированныйСписок)
+sort_brute_force(List, Sorted) :-
+    my_permutation(List, Sorted), % Генерация
+    ordered(Sorted).              % Проверка ограничений
+
+%==============================
+
+% Вариант 2. Оптимизированный перебор с сокращением
+% Вспомогательный предикат: Взять из исходного списка List
+% подходящий элемент Y (Y >= Prev), удалив его из остатка.
+% Если Prev не задан (первый элемент), подходит любой.
+select_candidate(Prev, List, Y, Rest) :-
+    select(Y, List, Rest),
+    ( var(Prev) -> true ; Y >= Prev ). 
+
+% Аргументы: (список_оставшихся, предыдущий_элемент, результат)
+build_sorted([], _, []).
+build_sorted(List, Prev, [Y | SortedTail]) :-
+    select_candidate(Prev, List, Y, Rest),
+    build_sorted(Rest, Y, SortedTail).
+
+sort_improved(List, Sorted) :-
+    build_sorted(List, _, Sorted).
+
+%==============================
+
